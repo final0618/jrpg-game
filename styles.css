@@ -218,6 +218,8 @@ h1, h2, h3, p { margin-top: 0; }
   .enemy-stage { min-height: 225px; }
   .boss-character { bottom: 64px; left: 74%; width: 170px; height: 174px; }
   .enemy-stage[data-boss-state="core"] .boss-character { bottom: 69px; width: 138px; height: 138px; }
+  .enemy-stage[data-boss-state="true-hon"] .boss-character { bottom: 54px; left: 77%; width: 116px; height: 155px; }
+  .enemy-stage[data-boss-state="true-hon"] .enemy-readout { width: 58%; padding-right: 12px; padding-left: 12px; }
   .combat-effect { top: 35%; }
   .fx-curve { top: auto; bottom: 62px; }
   .party-panel { padding: 13px; }
