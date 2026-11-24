@@ -71,10 +71,16 @@ const learnableSkillIds = ['doubleStrike', 'powerSlash', 'rockPaperScissors'];
 const gestureNames = { scissors: '剪刀', rock: '石頭', paper: '布' };
 const learningChance = 0.2;
 const maxLearnedSkills = 3;
+const consumables = {
+  hpPotion: { label: '補血藥', resource: 'hp', maximum: 'maxHp', amount: 20, price: 10 },
+  mpPotion: { label: '補魔藥', resource: 'mp', maximum: 'maxMp', amount: 30, price: 10 },
+};
+const startingItemInventory = { hpPotion: 2, mpPotion: 2 };
 const $ = id => document.getElementById(id);
 const views = ['story-screen', 'battle-screen', 'ending-screen'].map($);
 
 let party;
+let itemInventory = { ...startingItemInventory };
 let stageIndex = 0;
 let enemy;
 let round = 1;
@@ -85,6 +91,10 @@ let locked = false;
 let animating = false;
 let enemyActing = false;
 let selectingGesture = false;
+let selectingItems = false;
+let selectedItemId = '';
+let showingItemShop = false;
+let itemShopUnlocked = false;
 
 function showView(view) {
   views.forEach(item => { item.hidden = item !== view; });
@@ -99,8 +109,13 @@ function beginAdventure() {
     learnedSkills: [],
     learning: false,
   }));
+  itemInventory = { ...startingItemInventory };
   stageIndex = 0;
   selectingGesture = false;
+  selectingItems = false;
+  selectedItemId = '';
+  showingItemShop = false;
+  itemShopUnlocked = false;
   showStory(stages[stageIndex].intro);
 }
 
@@ -133,6 +148,9 @@ function startBattle() {
   animating = false;
   enemyActing = false;
   selectingGesture = false;
+  selectingItems = false;
+  selectedItemId = '';
+  showingItemShop = false;
   $('battle-kicker').textContent = stage.kicker;
   $('battle-title').textContent = stage.name;
   $('enemy-name').textContent = stage.enemy;
@@ -183,16 +201,39 @@ function renderCommands() {
     box.innerHTML = `
       ${Object.entries(gestureNames).map(([choice, name]) => `<button class="command-button" data-action="skill" data-skill-id="rockPaperScissors" data-choice="${choice}"><strong>${name}</strong><small>猜拳出招</small></button>`).join('')}
       <button class="command-button" data-action="cancel-gesture"><strong>返回</strong><small>取消猜拳</small></button>`;
-    box.querySelectorAll('[data-action]').forEach(button => {
-      button.addEventListener('click', () => {
-        if (button.dataset.action === 'cancel-gesture') {
-          selectingGesture = false;
-          renderCommands();
-          return;
-        }
-        takeAction(button.dataset.action, button.dataset.choice, button.dataset.skillId);
-      });
-    });
+    bindCommandButtons(box);
+    return;
+  }
+  if (selectedItemId) {
+    const item = consumables[selectedItemId];
+    box.innerHTML = `
+      ${party.map(member => {
+        const resource = item.resource.toUpperCase();
+        const eligible = canUseItemOnHero(selectedItemId, member);
+        return `<button class="command-button" data-action="use-item" data-item-id="${selectedItemId}" data-target-id="${member.id}" ${eligible ? '' : 'disabled'}><strong>${member.name}</strong><small>${resource} ${member[item.resource]}/${member[item.maximum]}</small></button>`;
+      }).join('')}
+      <button class="command-button" data-action="back-to-items"><strong>返回道具</strong><small>取消選擇</small></button>`;
+    bindCommandButtons(box);
+    return;
+  }
+  if (showingItemShop) {
+    box.innerHTML = `
+      <p class="command-note">示範購買：每件 NT$10，不會實際扣款。</p>
+      ${Object.entries(consumables).map(([itemId, item]) => `<button class="command-button" data-action="buy-item" data-item-id="${itemId}"><strong>${item.label} · NT$${item.price}</strong><small>${item.resource.toUpperCase()} +${item.amount} · 購買一個</small></button>`).join('')}
+      <button class="command-button" data-action="back-to-items"><strong>返回道具</strong><small>取消購買</small></button>`;
+    bindCommandButtons(box);
+    return;
+  }
+  if (selectingItems) {
+    box.innerHTML = `
+      ${Object.entries(consumables).map(([itemId, item]) => {
+        const eligible = party.some(member => canUseItemOnHero(itemId, member));
+        const count = itemInventory[itemId];
+        return `<button class="command-button" data-action="select-item" data-item-id="${itemId}" ${count < 1 || !eligible ? 'disabled' : ''}><strong>${item.label} ×${count}</strong><small>${item.resource.toUpperCase()} +${item.amount}</small></button>`;
+      }).join('')}
+      ${itemShopUnlocked ? '<button class="command-button" data-action="open-item-shop"><strong>道具商店</strong><small>示範購買 · NT$10/個</small></button>' : ''}
+      <button class="command-button" data-action="cancel-items"><strong>返回</strong><small>取消使用道具</small></button>`;
+    bindCommandButtons(box);
     return;
   }
 
@@ -209,17 +250,66 @@ function renderCommands() {
     <button class="command-button" data-action="attack"><strong>普通攻擊</strong><small>造成 ${hero.attack} 傷害 · 不消耗 MP</small></button>
     <button class="command-button" data-action="skill" data-skill-id="${hero.skill}" ${hero.mp < skill.cost ? 'disabled' : ''}><strong>${skill.label}</strong><small>${skillHelp}</small></button>
     ${learnedCommands}
+    <button class="command-button" data-action="open-items"><strong>使用道具</strong><small>補血藥 ${itemInventory.hpPotion} · 補魔藥 ${itemInventory.mpPotion}</small></button>
     <button class="command-button" data-action="guard"><strong>架勢防禦</strong><small>本回合受到傷害減半</small></button>`;
+  bindCommandButtons(box);
+}
+
+function bindCommandButtons(box) {
   box.querySelectorAll('[data-action]').forEach(button => {
-    button.addEventListener('click', () => {
-      if (button.dataset.action === 'open-gesture') {
-        selectingGesture = true;
-        renderCommands();
-        return;
-      }
-      takeAction(button.dataset.action, button.dataset.choice, button.dataset.skillId);
-    });
+    button.addEventListener('click', () => handleCommandButton(button));
   });
+}
+
+function handleCommandButton(button) {
+  const action = button.dataset.action;
+  const itemId = button.dataset.itemId;
+  if (action === 'open-gesture') {
+    selectingGesture = true;
+    renderCommands();
+  } else if (action === 'cancel-gesture') {
+    selectingGesture = false;
+    renderCommands();
+  } else if (action === 'open-items') {
+    selectingItems = true;
+    renderCommands();
+  } else if (action === 'select-item') {
+    selectedItemId = itemId;
+    selectingItems = false;
+    renderCommands();
+  } else if (action === 'back-to-items') {
+    selectedItemId = '';
+    showingItemShop = false;
+    selectingItems = true;
+    renderCommands();
+  } else if (action === 'cancel-items') {
+    selectingItems = false;
+    renderCommands();
+  } else if (action === 'open-item-shop') {
+    if (!itemShopUnlocked) return;
+    selectingItems = false;
+    showingItemShop = true;
+    renderCommands();
+  } else if (action === 'buy-item') {
+    purchaseDemoItem(itemId);
+  } else if (action === 'use-item') {
+    takeAction('item', button.dataset.targetId, itemId);
+  } else {
+    takeAction(action, button.dataset.choice, button.dataset.skillId);
+  }
+}
+
+function canUseItemOnHero(itemId, hero) {
+  const item = consumables[itemId];
+  return Boolean(item && hero.hp > 0 && hero[item.resource] < hero[item.maximum]);
+}
+
+function purchaseDemoItem(itemId) {
+  const item = consumables[itemId];
+  if (!itemShopUnlocked || !item) return;
+  itemInventory[itemId]++;
+  $('battle-message').textContent = `示範購買成功：已獲得一個${item.label}（NT$${item.price}，不會實際扣款）。`;
+  renderCommands();
 }
 
 function renderBattle() {
@@ -262,6 +352,7 @@ function takeAction(action, choice, skillId) {
   const messages = [];
   let healingTarget = null;
   let effectAmount = 0;
+  let recoveryType = 'hp';
   let selfDamage = 0;
   let damageNumbers = [];
   let usedSkillId = '';
@@ -273,6 +364,24 @@ function takeAction(action, choice, skillId) {
   } else if (action === 'guard') {
     guarded.add(actorIndex);
     messages.push(`${hero.name} 穩住架勢，準備承受攻擊。`);
+  } else if (action === 'item') {
+    const item = consumables[skillId];
+    const target = party.find(member => member.id === choice);
+    if (!item || itemInventory[skillId] < 1 || !target || !canUseItemOnHero(skillId, target)) return;
+
+    itemInventory[skillId]--;
+    selectedItemId = '';
+    selectingItems = false;
+    showingItemShop = false;
+    effectAmount = Math.min(item.amount, target[item.maximum] - target[item.resource]);
+    target[item.resource] += effectAmount;
+    healingTarget = target;
+    recoveryType = item.resource;
+    messages.push(`${hero.name} 使用${item.label}，${target.name} 的 ${item.resource.toUpperCase()} 恢復 ${effectAmount} 點。`);
+    if (!itemShopUnlocked && Object.values(itemInventory).every(count => count === 0)) {
+      itemShopUnlocked = true;
+      messages.push('初始道具已用完，示範商店已開放（不會實際扣款）。');
+    }
   } else if (action === 'skill') {
     usedSkillId = skillId || hero.skill;
     const skill = skills[usedSkillId];
@@ -335,12 +444,12 @@ function takeAction(action, choice, skillId) {
   animating = true;
   $('enemy-health-bar').style.width = `${Math.max(0, enemy.hp / enemy.maxHp * 100)}%`;
   $('enemy-health-text').textContent = `${enemy.hp} / ${enemy.maxHp}`;
-  $('turn-title').textContent = `${hero.name} 發動招式…`;
-  $('turn-hint').textContent = '招式正在命中目標';
+  $('turn-title').textContent = action === 'item' ? `${hero.name} 使用道具…` : `${hero.name} 發動招式…`;
+  $('turn-hint').textContent = action === 'item' ? '道具效果套用中' : '招式正在命中目標';
   $('party-status').textContent = '招式發動中';
   $('command-buttons').querySelectorAll('button').forEach(button => { button.disabled = true; });
   renderParty();
-  playHeroAction(hero, action, effectAmount, healingTarget, usedSkillId, damageNumbers, selfDamage, gestureResult);
+  playHeroAction(hero, action, effectAmount, healingTarget, usedSkillId, damageNumbers, selfDamage, gestureResult, recoveryType);
 
   window.setTimeout(() => {
     animating = false;
@@ -369,7 +478,7 @@ function addFloatingNumber(container, text, className) {
   return number;
 }
 
-function playHeroAction(hero, action, amount, healingTarget, skillId = '', damageNumbers = [], selfDamage = 0, gestureResult = '') {
+function playHeroAction(hero, action, amount, healingTarget, skillId = '', damageNumbers = [], selfDamage = 0, gestureResult = '', recoveryType = 'hp') {
   if (gestureResult) {
     const result = document.createElement('span');
     result.className = 'gesture-result';
@@ -394,7 +503,11 @@ function playHeroAction(hero, action, amount, healingTarget, skillId = '', damag
     card?.classList.add('is-casting');
     const targetCard = document.querySelector(`[data-hero-id="${healingTarget.id}"]`);
     targetCard?.classList.add('is-healing');
-    if (targetCard) addFloatingNumber(targetCard, `+${amount}`, 'heal-number');
+    if (targetCard) {
+      const number = recoveryType === 'mp' ? `+${amount} MP` : `+${amount}`;
+      const numberClass = recoveryType === 'mp' ? 'mp-number' : 'heal-number';
+      addFloatingNumber(targetCard, number, numberClass);
+    }
     window.setTimeout(() => {
       card?.classList.remove('is-casting');
       targetCard?.classList.remove('is-healing');

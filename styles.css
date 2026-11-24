@@ -97,6 +97,7 @@ h1, h2, h3, p { margin-top: 0; }
 .fx-enemy-wave { top: 27%; width: 32px; height: 32px; border: 3px solid #e37655; border-radius: 50%; box-shadow: 0 0 16px #db594e; animation: enemy-wave .62s ease-out both; }
 .floating-number { position: absolute; z-index: 6; top: 25%; left: 54%; color: #ffe4bd; font: 700 22px "DM Sans", sans-serif; text-shadow: 0 2px 6px #080907, 0 0 12px #e8794f; pointer-events: none; animation: damage-rise .82s ease-out both; }
 .floating-number.heal-number { top: 4px; right: 12px; left: auto; color: #b6f0ca; font-size: 15px; text-shadow: 0 1px 5px #0e2014, 0 0 12px #7ce5aa; }
+.floating-number.mp-number { top: 4px; right: 12px; left: auto; color: #b9e8ff; font-size: 13px; text-shadow: 0 1px 5px #0c1a28, 0 0 12px #6fcaff; }
 .enemy-name-line { display: flex; align-items: center; gap: 11px; }
 .enemy-name-line h3 { margin: 0; font: 700 19px "Noto Serif TC", serif; letter-spacing: .1em; }
 .enemy-tag { padding: 3px 7px; border: 1px solid #c86650; color: #e48369; font-size: 9px; letter-spacing: .1em; }
@@ -139,6 +140,7 @@ h1, h2, h3, p { margin-top: 0; }
 .command-heading h3 { margin: 0; font: 600 14px "Noto Serif TC", serif; }
 .command-heading > span { color: var(--dim); font-size: 9px; }
 .command-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+.command-note { grid-column: 1 / -1; margin: 0; color: var(--gold); font: 11px/1.6 "Noto Serif TC", serif; }
 .command-button { min-height: 55px; padding: 9px 12px; border: 1px solid #ffffff22; background: #ffffff07; cursor: pointer; text-align: left; transition: border-color .15s, background .15s; }
 .command-button:hover:not(:disabled) { border-color: #d3b678a8; background: #d3b67813; }
 .command-button:disabled { cursor: not-allowed; opacity: .38; }
