@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360" role="img" aria-labelledby="title description">
+  <title id="title">失控的魔力核心</title>
+  <desc id="description">被破碎的球瓶與環形符文包圍的紫紅色魔力核心。</desc>
+  <defs>
+    <radialGradient id="core">
+      <stop stop-color="#fff0bc"/>
+      <stop offset=".18" stop-color="#f2a45e"/>
+      <stop offset=".5" stop-color="#b84968"/>
+      <stop offset="1" stop-color="#4a2d68"/>
+    </radialGradient>
+    <radialGradient id="halo">
+      <stop stop-color="#d94d6b" stop-opacity=".38"/>
+      <stop offset="1" stop-color="#8e4a95" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="13"/>
+    </filter>
+  </defs>
+  <ellipse cx="180" cy="324" rx="112" ry="16" fill="#090a0d" opacity=".65"/>
+  <circle cx="180" cy="174" r="156" fill="url(#halo)"/>
+  <circle cx="180" cy="174" r="102" fill="none" stroke="#d99873" stroke-opacity=".58" stroke-width="2" stroke-dasharray="7 12"/>
+  <circle cx="180" cy="174" r="83" fill="none" stroke="#f1c280" stroke-opacity=".7" stroke-width="3" stroke-dasharray="1 9"/>
+  <circle cx="180" cy="174" r="66" fill="#e24f67" opacity=".6" filter="url(#blur)"/>
+  <path d="m180 74 31 48 53 13-38 39 6 54-52-22-49 25 4-56-39-36 54-13Z" fill="url(#core)" stroke="#f0c888" stroke-width="4" stroke-linejoin="round"/>
+  <circle cx="180" cy="174" r="32" fill="#fff1cd" opacity=".82"/>
+  <circle cx="180" cy="174" r="20" fill="#f7c875"/>
+  <circle cx="180" cy="174" r="8" fill="#8a365c"/>
+  <path d="m113 83-15-35 27 16 12-36 11 40m91 13 18-37-29 17-8-35-16 39" fill="#353438" stroke="#d2af77" stroke-width="5" stroke-linejoin="round"/>
+  <path d="m80 173-31-12 23 34-31 17 40 4m199-44 32-13-24 35 31 17-41 3" fill="none" stroke="#d79271" stroke-width="5" stroke-linejoin="round"/>
+  <path d="m120 275 21-35 18 42m51-5 24-40 12 39" fill="#f0e2c2" stroke="#7d6a53" stroke-width="5" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#171915">
+  <meta name="description" content="三位勇者踏入魔王城，以回合制戰鬥揭開封印核心的秘密。">
+  <title>王座下的封印｜JRPG</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./game.js" defer></script>
+</head>
+<body>
+  <main class="game-shell">
+    <header class="topbar">
+      <a class="wordmark" href="./index.html" aria-label="王座下的封印首頁">
+        <span class="wordmark-mark" aria-hidden="true">封</span>
+        <span>王座下的封印<small>一段飛碟球門派的傳說</small></span>
+      </a>
+      <div class="topbar-note"><span class="status-dot"></span>單人劇情 · 回合制戰鬥</div>
+    </header>
+
+    <section class="view story-view" id="story-screen" hidden aria-labelledby="story-title">
+      <div class="story-art" id="story-art" aria-hidden="true"></div>
+      <article class="story-card">
+        <p class="eyebrow" id="story-kicker"></p>
+        <h2 id="story-title"></h2>
+        <p id="story-text"></p>
+        <button class="button button-primary" id="story-continue">繼續 <span aria-hidden="true">→</span></button>
+      </article>
+    </section>
+
+    <section class="view battle-view" id="battle-screen" hidden aria-labelledby="battle-title">
+      <div class="battle-heading">
+        <div><p class="eyebrow" id="battle-kicker"></p><h2 id="battle-title"></h2></div>
+        <div class="round-chip" id="round-chip">回合 1</div>
+      </div>
+
+      <div class="battlefield">
+        <div class="enemy-stage" id="enemy-stage">
+          <div class="enemy-backdrop" id="enemy-backdrop"></div>
+          <div class="boss-character" id="boss-character">
+            <div class="boss-aura" aria-hidden="true"></div>
+            <img class="boss-sprite" id="boss-sprite" src="./assets/ken13-boss.png" alt="魔王 Ken13" draggable="false">
+          </div>
+          <div class="enemy-readout">
+            <div class="enemy-name-line"><h3 id="enemy-name"></h3><span class="enemy-tag">首領</span></div>
+            <div class="health-track enemy-health"><span id="enemy-health-bar"></span></div>
+            <div class="health-label"><span>生命</span><strong id="enemy-health-text"></strong></div>
+            <p class="enemy-telegraph" id="enemy-telegraph"></p>
+          </div>
+        </div>
+        <div class="party-panel">
+          <div class="party-heading"><span>勇者小隊</span><span id="party-status">選擇行動</span></div>
+          <div class="party-list" id="party-list"></div>
+        </div>
+      </div>
+
+      <div class="command-panel">
+        <div class="command-heading">
+          <div><p class="eyebrow">YOUR TURN</p><h3 id="turn-title">選擇行動</h3></div>
+          <span id="turn-hint">攻擊、施放技能或防禦</span>
+        </div>
+        <div class="command-buttons" id="command-buttons"></div>
+      </div>
+
+      <div class="battle-footer">
+        <div class="battle-log" aria-live="polite" aria-label="戰鬥紀錄"><span class="log-mark">›</span><span id="battle-message"></span></div>
+        <div class="log-count" id="log-count">回合 1</div>
+      </div>
+    </section>
+
+    <section class="view ending-view" id="ending-screen" hidden aria-labelledby="ending-title">
+      <div class="ending-art" id="ending-art" role="img"></div>
+      <div class="ending-copy">
+        <p class="eyebrow">CHAPTER ONE · COMPLETE</p>
+        <h2 id="ending-title">王座下的封印<br><em>再次亮起</em></h2>
+        <p id="ending-text"></p>
+        <div class="ending-reward"><span class="reward-icon">✦</span><span><b>魔王城・第一章</b><small>傳說仍將繼續</small></span><strong>完</strong></div>
+        <button class="button button-primary" id="play-again">再次踏上旅程 <span aria-hidden="true">↻</span></button>
+      </div>
+    </section>
+    <footer class="site-footer"><span>王座下的封印</span><span>飛碟球門派傳說 · 第一章</span></footer>
+  </main>
+</body>
+</html>
