@@ -83,6 +83,9 @@ h1, h2, h3, p { margin-top: 0; }
 .enemy-stage[data-boss-state="awakened"] .boss-sprite { filter: drop-shadow(0 0 17px #e244ffc9) drop-shadow(0 11px 12px #080907b0); }
 .boss-character.is-hit .boss-sprite { animation: boss-recoil .46s ease both; }
 .boss-character.is-casting .boss-sprite { animation: boss-cast .55s ease-in-out both; }
+.boss-character.is-healing .boss-sprite { animation: boss-recover .7s ease both; filter: drop-shadow(0 0 15px #8ce2a5); }
+.boss-character.is-mp-restoring .boss-sprite { animation: boss-recover .7s ease both; filter: drop-shadow(0 0 15px #74caff); }
+.boss-character.is-mp-restoring .boss-aura { background: radial-gradient(ellipse, #54c2ff66 0%, #3781ae26 48%, transparent 74%); }
 .enemy-readout { position: relative; z-index: 4; width: 62%; padding: 0 21px 17px; }
 .combat-effect { position: absolute; z-index: 5; top: 39%; left: 53%; pointer-events: none; }
 .fx-slash { width: 200px; height: 8px; background: linear-gradient(90deg, transparent, #fff5d5 30%, #f5b765 68%, transparent); box-shadow: 0 0 14px #f4aa62; animation: slash-strike .56s cubic-bezier(.15,.7,.2,1) both; }
@@ -106,6 +109,9 @@ h1, h2, h3, p { margin-top: 0; }
 .enemy-health { margin-top: 11px; }
 .health-label { display: flex; justify-content: space-between; margin-top: 5px; color: var(--muted); font-size: 9px; }
 .health-label strong { color: var(--paper); font-size: 10px; }
+.enemy-mp-label { margin-top: 8px; }
+.enemy-mp-track { height: 4px; margin-top: 4px; }
+.enemy-mp-track span { background: linear-gradient(90deg, #4b8095, #82c8dd); }
 .enemy-telegraph { margin: 11px 0 0; color: #d7bc83; font-size: 10px; }
 .party-panel { padding: 17px; }
 .party-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; color: var(--paper); font: 600 12px "Noto Serif TC", serif; }
@@ -158,6 +164,7 @@ h1, h2, h3, p { margin-top: 0; }
 @keyframes aura-breathe { 0%, 100% { opacity: .68; transform: scale(.96); } 50% { opacity: 1; transform: scale(1.05); } }
 @keyframes boss-recoil { 0%, 100% { transform: translateX(0) rotate(0); filter: brightness(1.5); } 25% { transform: translateX(-11px) rotate(-4deg); } 65% { transform: translateX(8px) rotate(3deg); } }
 @keyframes boss-cast { 0%, 100% { transform: scale(1); } 45% { transform: scale(1.08) translateY(-7px); filter: brightness(1.35); } }
+@keyframes boss-recover { 0%, 100% { transform: scale(1); } 45% { transform: scale(1.1); filter: brightness(1.35); } }
 @keyframes hero-lunge { 0%, 100% { transform: translateX(0); } 48% { transform: translateX(-16px); border-color: #e6c27f; box-shadow: 0 0 18px #e7b76c3d; } }
 @keyframes hero-hit { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-7px); background-color: #b94d3940; } 55% { transform: translateX(5px); } }
 @keyframes hero-heal { 0%, 100% { box-shadow: inset 0 0 0 #83dba000; } 45% { box-shadow: inset 0 0 30px #83dba077; } }

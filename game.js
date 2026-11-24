@@ -139,7 +139,7 @@ function restBetweenBattles() {
 
 function startBattle() {
   const stage = stages[stageIndex];
-  enemy = { name: stage.enemy, hp: stage.hp, maxHp: stage.hp, attack: stage.attack };
+  enemy = { name: stage.enemy, hp: stage.hp, maxHp: stage.hp, mp: stage.hp, maxMp: stage.hp, attack: stage.attack };
   round = 1;
   actorIndex = 0;
   acted = [];
@@ -207,10 +207,10 @@ function renderCommands() {
   if (selectedItemId) {
     const item = consumables[selectedItemId];
     box.innerHTML = `
-      ${party.map(member => {
+      ${getItemTargets().map(({ id, name, target }) => {
         const resource = item.resource.toUpperCase();
-        const eligible = canUseItemOnHero(selectedItemId, member);
-        return `<button class="command-button" data-action="use-item" data-item-id="${selectedItemId}" data-target-id="${member.id}" ${eligible ? '' : 'disabled'}><strong>${member.name}</strong><small>${resource} ${member[item.resource]}/${member[item.maximum]}</small></button>`;
+        const eligible = canUseItemOnTarget(selectedItemId, target);
+        return `<button class="command-button" data-action="use-item" data-item-id="${selectedItemId}" data-target-id="${id}" ${eligible ? '' : 'disabled'}><strong>${name}</strong><small>${resource} ${target[item.resource]}/${target[item.maximum]}</small></button>`;
       }).join('')}
       <button class="command-button" data-action="back-to-items"><strong>返回道具</strong><small>取消選擇</small></button>`;
     bindCommandButtons(box);
@@ -227,7 +227,7 @@ function renderCommands() {
   if (selectingItems) {
     box.innerHTML = `
       ${Object.entries(consumables).map(([itemId, item]) => {
-        const eligible = party.some(member => canUseItemOnHero(itemId, member));
+        const eligible = getItemTargets().some(({ target }) => canUseItemOnTarget(itemId, target));
         const count = itemInventory[itemId];
         return `<button class="command-button" data-action="select-item" data-item-id="${itemId}" ${count < 1 || !eligible ? 'disabled' : ''}><strong>${item.label} ×${count}</strong><small>${item.resource.toUpperCase()} +${item.amount}</small></button>`;
       }).join('')}
@@ -299,9 +299,16 @@ function handleCommandButton(button) {
   }
 }
 
-function canUseItemOnHero(itemId, hero) {
+function canUseItemOnTarget(itemId, target) {
   const item = consumables[itemId];
-  return Boolean(item && hero.hp > 0 && hero[item.resource] < hero[item.maximum]);
+  return Boolean(item && target && target.hp > 0);
+}
+
+function getItemTargets() {
+  return [
+    { id: 'enemy', name: `${enemy.name}（敵方）`, target: enemy },
+    ...party.map(member => ({ id: member.id, name: member.name, target: member })),
+  ];
 }
 
 function purchaseDemoItem(itemId) {
@@ -315,8 +322,11 @@ function purchaseDemoItem(itemId) {
 function renderBattle() {
   const stage = stages[stageIndex];
   const percentage = Math.max(0, enemy.hp / enemy.maxHp * 100);
+  const mpPercentage = Math.max(0, enemy.mp / enemy.maxMp * 100);
   $('enemy-health-bar').style.width = `${percentage}%`;
   $('enemy-health-text').textContent = `${enemy.hp} / ${enemy.maxHp}`;
+  $('enemy-mp-bar').style.width = `${mpPercentage}%`;
+  $('enemy-mp-text').textContent = `${enemy.mp} / ${enemy.maxMp}`;
   $('round-chip').textContent = `回合 ${round}`;
   $('log-count').textContent = `回合 ${round}`;
   $('party-status').textContent = enemyActing ? '敵方行動中'
@@ -366,8 +376,8 @@ function takeAction(action, choice, skillId) {
     messages.push(`${hero.name} 穩住架勢，準備承受攻擊。`);
   } else if (action === 'item') {
     const item = consumables[skillId];
-    const target = party.find(member => member.id === choice);
-    if (!item || itemInventory[skillId] < 1 || !target || !canUseItemOnHero(skillId, target)) return;
+    const target = choice === 'enemy' ? enemy : party.find(member => member.id === choice);
+    if (!item || itemInventory[skillId] < 1 || !target || !canUseItemOnTarget(skillId, target)) return;
 
     itemInventory[skillId]--;
     selectedItemId = '';
@@ -444,6 +454,8 @@ function takeAction(action, choice, skillId) {
   animating = true;
   $('enemy-health-bar').style.width = `${Math.max(0, enemy.hp / enemy.maxHp * 100)}%`;
   $('enemy-health-text').textContent = `${enemy.hp} / ${enemy.maxHp}`;
+  $('enemy-mp-bar').style.width = `${Math.max(0, enemy.mp / enemy.maxMp * 100)}%`;
+  $('enemy-mp-text').textContent = `${enemy.mp} / ${enemy.maxMp}`;
   $('turn-title').textContent = action === 'item' ? `${hero.name} 使用道具…` : `${hero.name} 發動招式…`;
   $('turn-hint').textContent = action === 'item' ? '道具效果套用中' : '招式正在命中目標';
   $('party-status').textContent = '招式發動中';
@@ -501,6 +513,20 @@ function playHeroAction(hero, action, amount, healingTarget, skillId = '', damag
   }
   if (healingTarget) {
     card?.classList.add('is-casting');
+    if (healingTarget === enemy) {
+      const bossCharacter = $('boss-character');
+      const bossEffect = recoveryType === 'mp' ? 'is-mp-restoring' : 'is-healing';
+      bossCharacter.classList.add(bossEffect);
+      const number = recoveryType === 'mp' ? `+${amount} MP` : `+${amount}`;
+      const numberClass = recoveryType === 'mp' ? 'mp-number' : 'heal-number';
+      addFloatingNumber(bossCharacter, number, numberClass);
+      window.setTimeout(() => {
+        card?.classList.remove('is-casting');
+        bossCharacter.classList.remove(bossEffect);
+      }, 750);
+      return;
+    }
+
     const targetCard = document.querySelector(`[data-hero-id="${healingTarget.id}"]`);
     targetCard?.classList.add('is-healing');
     if (targetCard) {
@@ -557,8 +583,11 @@ function enemyTurn() {
     const messages = [];
     const impacts = [];
     const partyAlive = party.map((hero, index) => ({ hero, index })).filter(item => item.hero.hp > 0);
-    const isAreaAttack = round % 3 === 0;
+    const isAreaAttack = round % 3 === 0 && enemy.mp >= 15;
+    if (round % 3 === 0 && !isAreaAttack) messages.push(`${enemy.name} MP 不足，改為單體攻擊`);
     if (isAreaAttack) {
+      enemy.mp -= 15;
+      messages.push(`${enemy.name} 消耗 15 MP 發動範圍衝擊`);
       partyAlive.forEach(({ hero, index }) => {
         const damage = Math.max(1, Math.floor(enemy.attack * 0.62 * (guarded.has(index) ? 0.5 : 1)));
         hero.hp = Math.max(0, hero.hp - damage);
