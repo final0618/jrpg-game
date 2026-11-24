@@ -147,6 +147,8 @@ h1, h2, h3, p { margin-top: 0; }
 .mp-track span { display: block; height: 100%; background: #6f9cab; transition: width .3s; }
 .bar-value { color: #c9c0ad; font-size: 9px; font-variant-numeric: tabular-nums; }
 .bar-label { color: var(--dim); font-size: 8px; }
+.boss-dialogue { display: flex; align-items: baseline; gap: 12px; margin-top: 15px; padding: 12px 16px; border: 1px solid #d3b67880; background: #302620; color: var(--paper); font: 12px/1.7 "Noto Serif TC", serif; }
+.boss-dialogue strong { flex: 0 0 auto; color: var(--gold); }
 .command-panel { margin-top: 15px; padding: 16px 18px 18px; }
 .command-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 13px; }
 .command-heading .eyebrow { margin-bottom: 3px; font-size: 8px; }

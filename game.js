@@ -128,6 +128,7 @@ let selectedItemId = '';
 let showingItemShop = false;
 let itemShopUnlocked = false;
 let finalBossHpPotionUses = 0;
+let finalBossAskedForHelp = false;
 let hiddenRouteUnlocked = false;
 let hiddenRouteCompleted = false;
 
@@ -152,6 +153,8 @@ function beginAdventure() {
   showingItemShop = false;
   itemShopUnlocked = false;
   finalBossHpPotionUses = 0;
+  finalBossAskedForHelp = false;
+  $('boss-dialogue').hidden = true;
   hiddenRouteUnlocked = false;
   hiddenRouteCompleted = false;
   showStory(stages[stageIndex].intro);
@@ -178,7 +181,11 @@ function restBetweenBattles() {
 function startBattle() {
   const stage = getCurrentStage();
   enemy = { name: stage.enemy, hp: stage.hp, maxHp: stage.hp, mp: stage.hp, maxMp: stage.hp, attack: stage.attack };
-  if (stageIndex === stages.length - 1) finalBossHpPotionUses = 0;
+  if (stageIndex === stages.length - 1) {
+    finalBossHpPotionUses = 0;
+    finalBossAskedForHelp = false;
+  }
+  $('boss-dialogue').hidden = true;
   round = 1;
   actorIndex = 0;
   acted = [];
@@ -457,6 +464,8 @@ function takeAction(action, choice, skillId) {
       if (finalBossHpPotionUses >= 2) {
         enterHiddenStory = true;
         messages.push('兩個補血藥的力量解開了 Ken13 的心鎖！');
+      } else if (finalBossAskedForHelp) {
+        $('boss-dialogue-text').textContent = '謝謝你們……我感覺好多了，請再給我一個補血藥！';
       }
     }
     if (!itemShopUnlocked && Object.values(itemInventory).every(count => count === 0)) {
@@ -525,6 +534,15 @@ function takeAction(action, choice, skillId) {
       effectAmount = damage;
       messages.push(`${hero.name} 使出「${skill.label}」，造成 ${damage} 點傷害！`);
     }
+  }
+
+  if (stageIndex === stages.length - 1 && !finalBossAskedForHelp
+      && enemy.hp > 0 && enemy.hp < enemy.maxHp / 2 && !enterHiddenStory) {
+    finalBossAskedForHelp = true;
+    $('boss-dialogue-text').textContent = finalBossHpPotionUses > 0
+      ? '謝謝你們剛才的幫助……請再給我一個補血藥！'
+      : '等等……我快撐不住了！勇者們，請用補血藥幫幫我！';
+    $('boss-dialogue').hidden = false;
   }
 
   const learnedSkill = action === 'attack' ? tryLearnSkill(hero) : null;
@@ -750,6 +768,7 @@ function finishBattle(victory = true) {
   locked = true;
   animating = false;
   enemyActing = false;
+  $('boss-dialogue').hidden = true;
   renderBattle();
   const result = document.createElement('div');
   result.className = 'battle-result';
