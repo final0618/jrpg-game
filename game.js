@@ -155,6 +155,7 @@ function beginAdventure() {
   finalBossHpPotionUses = 0;
   finalBossAskedForHelp = false;
   $('boss-dialogue').hidden = true;
+  $('boss-dialogue').classList.remove('is-whisper');
   hiddenRouteUnlocked = false;
   hiddenRouteCompleted = false;
   showStory(stages[stageIndex].intro);
@@ -186,6 +187,7 @@ function startBattle() {
     finalBossAskedForHelp = false;
   }
   $('boss-dialogue').hidden = true;
+  $('boss-dialogue').classList.remove('is-whisper');
   round = 1;
   actorIndex = 0;
   acted = [];
@@ -432,6 +434,7 @@ function takeAction(action, choice, skillId) {
   let healingTarget = null;
   let effectAmount = 0;
   let enterHiddenStory = false;
+  let triggerBossRetaliation = false;
   let recoveryType = 'hp';
   let selfDamage = 0;
   let damageNumbers = [];
@@ -464,8 +467,8 @@ function takeAction(action, choice, skillId) {
       if (finalBossHpPotionUses >= 2) {
         enterHiddenStory = true;
         messages.push('兩個補血藥的力量解開了 Ken13 的心鎖！');
-      } else if (finalBossAskedForHelp) {
-        $('boss-dialogue-text').textContent = '謝謝你們……我感覺好多了，請再給我一個補血藥！';
+      } else {
+        triggerBossRetaliation = true;
       }
     }
     if (!itemShopUnlocked && Object.values(itemInventory).every(count => count === 0)) {
@@ -540,9 +543,10 @@ function takeAction(action, choice, skillId) {
       && enemy.hp > 0 && enemy.hp < enemy.maxHp / 2 && !enterHiddenStory) {
     finalBossAskedForHelp = true;
     $('boss-dialogue-text').textContent = finalBossHpPotionUses > 0
-      ? '謝謝你們剛才的幫助……請再給我一個補血藥！'
+      ? '再幫幫我……'
       : '等等……我快撐不住了！勇者們，請用補血藥幫幫我！';
     $('boss-dialogue').hidden = false;
+    $('boss-dialogue').classList.toggle('is-whisper', finalBossHpPotionUses > 0);
   }
 
   const learnedSkill = action === 'attack' ? tryLearnSkill(hero) : null;
@@ -562,8 +566,8 @@ function takeAction(action, choice, skillId) {
   playHeroAction(hero, action, effectAmount, healingTarget, usedSkillId, damageNumbers, selfDamage, gestureResult, recoveryType);
 
   window.setTimeout(() => {
-    animating = false;
     if (enterHiddenStory) {
+      animating = false;
       stageIndex = hiddenStageIndex;
       hiddenRouteUnlocked = true;
       restBetweenBattles();
@@ -580,20 +584,63 @@ function takeAction(action, choice, skillId) {
       showStory(hiddenStage.intro);
       return;
     }
+    if (triggerBossRetaliation) {
+      bossHealingRetaliation();
+      return;
+    }
+    animating = false;
     if (enemy.hp <= 0) {
       finishBattle();
       return;
     }
 
-    const next = nextLivingActor(actorIndex + 1);
-    if (next >= 0) {
-      actorIndex = next;
-      renderBattle();
-    } else {
-      locked = true;
-      window.setTimeout(enemyTurn, 180);
-    }
+    advanceAfterHeroAction();
   }, 620);
+}
+
+function advanceAfterHeroAction() {
+  const next = nextLivingActor(actorIndex + 1);
+  if (next >= 0) {
+    actorIndex = next;
+    renderBattle();
+  } else {
+    locked = true;
+    window.setTimeout(enemyTurn, 180);
+  }
+}
+
+function bossHealingRetaliation() {
+  animating = false;
+  locked = true;
+  enemyActing = true;
+  $('boss-dialogue').hidden = false;
+  $('boss-dialogue').classList.remove('is-whisper');
+  $('boss-dialogue-text').textContent = '吼啊啊啊！';
+  $('battle-message').textContent = 'Ken13 突然大吼，力量正在失控！';
+  renderBattle();
+
+  window.setTimeout(() => {
+    const impacts = party.filter(hero => hero.hp > 0).map(hero => {
+      hero.hp = Math.max(0, hero.hp - 30);
+      return { id: hero.id, damage: 30 };
+    });
+    $('battle-message').textContent = 'Ken13 發動全體攻擊，每位勇者受到 30 點傷害！';
+    renderParty();
+    playEnemyAction(impacts);
+
+    window.setTimeout(() => {
+      enemyActing = false;
+      if (party.every(hero => hero.hp <= 0)) {
+        finishBattle(false);
+      } else {
+        locked = false;
+        advanceAfterHeroAction();
+      }
+      $('boss-dialogue').hidden = false;
+      $('boss-dialogue').classList.add('is-whisper');
+      $('boss-dialogue-text').textContent = '再幫幫我……';
+    }, 750);
+  }, 500);
 }
 
 function addFloatingNumber(container, text, className) {
@@ -778,7 +825,10 @@ function finishBattle(victory = true) {
   if (!victory) {
     message.textContent = '勇者小隊倒下了，但傳說尚未結束。調整戰術，再試一次吧。';
     button.textContent = '重新挑戰本場 ↻';
-    button.addEventListener('click', startBattle);
+    button.addEventListener('click', () => {
+      party.forEach(hero => { hero.hp = hero.maxHp; });
+      startBattle();
+    });
   } else {
     const finishedStage = stageIndex;
     const nextStory = stageIndex < stages.length - 1;
