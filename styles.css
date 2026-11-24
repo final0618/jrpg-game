@@ -189,6 +189,10 @@ h1, h2, h3, p { margin-top: 0; }
 .ending-view { display: grid; min-height: 590px; grid-template-columns: 1.05fr .95fr; align-items: center; overflow: hidden; }
 .ending-art { position: absolute; inset: 0 37% 0 0; background: center / cover; }
 .ending-art::after { position: absolute; inset: 0; content: ""; background: linear-gradient(90deg, #17191505 0%, #17191522 50%, #1d201b 100%), linear-gradient(0deg, #171915a8, transparent 50%); }
+.ending-view.is-hidden-ending { display: flex; min-height: 0; flex-direction: column; align-items: stretch; padding: 0; }
+.ending-view.is-hidden-ending .ending-art { position: relative; inset: auto; width: 100%; aspect-ratio: 3 / 2; flex: none; background-color: #171915; background-position: center; background-repeat: no-repeat; background-size: contain; }
+.ending-view.is-hidden-ending .ending-art::after { display: none; }
+.ending-view.is-hidden-ending .ending-copy { grid-column: auto; margin-top: 0; padding: 24px clamp(20px, 4vw, 48px) 30px; background: #171915; }
 .ending-copy { position: relative; z-index: 1; grid-column: 2; padding: 28px; }
 .ending-copy h2 { font-size: clamp(32px, 4vw, 48px); }
 .ending-copy > p:not(.eyebrow) { color: #c9bfad; font: 14px/2 "Noto Serif TC", serif; }

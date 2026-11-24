@@ -14,3 +14,4 @@ https://github.com/final0618/jrpg-game
 初始補血藥數量剛好足夠，不必購買道具。
 觸發後 Ken13 加入隊伍，一同迎戰真。HON。
 Ken13 可消耗 50 MP 使用「狂化」，變身為暴走型態；普通攻擊與攻擊技能傷害加倍。
+完成隱藏結局時會顯示四人同盟通關畫面（assets/hidden-ending.png）。

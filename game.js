@@ -794,12 +794,22 @@ function finishBattle(victory = true) {
 }
 
 function showEnding() {
+  const isHiddenEnding = hiddenRouteCompleted;
+  $('ending-screen').classList.toggle('is-hidden-ending', isHiddenEnding);
   $('ending-art').style.backgroundImage = hiddenRouteCompleted
-    ? 'url("./assets/ending-revival.webp")'
+    ? 'url("./assets/hidden-ending.png")'
     : 'url("./assets/ending-seal.webp")';
+  $('ending-art').setAttribute('aria-label', isHiddenEnding
+    ? 'Terry、Migie、jeRy 與 Ken13 在王座大殿並肩慶祝勝利'
+    : '王座下的封印重新亮起');
+  $('ending-kicker').textContent = isHiddenEnding ? 'SECRET CHAPTER · COMPLETE' : 'CHAPTER ONE · COMPLETE';
+  $('ending-title-main').textContent = isHiddenEnding ? '真。HON' : '王座下的封印';
+  $('ending-title-accent').textContent = isHiddenEnding ? '共同守護' : '再次亮起';
   $('ending-text').textContent = hiddenRouteCompleted
     ? '真。HON 終於被擊敗，王座下的陰謀就此揭開。Ken13 放下魔王身分，與 Terry、Migie、jeRy 成為並肩作戰的夥伴。隱藏篇章，完。'
     : 'Terry 的曲球曾讓魔王倒下，卻沒有擊中藏在球道中央的力量。這一次，三位勇者並肩作戰，jeRy 將最後一道封印打入核心。王座下的法陣再次亮起，Ken13 終於被封印。第一章，完。';
+  $('ending-reward-title').textContent = isHiddenEnding ? '隱藏章節・四人同盟' : '魔王城・第一章';
+  $('ending-reward-subtitle').textContent = isHiddenEnding ? '勇者與前魔王守住王座' : '傳說仍將繼續';
   showView($('ending-screen'));
 }
 
