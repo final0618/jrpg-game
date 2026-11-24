@@ -58,6 +58,37 @@ const stages = [
   },
 ];
 
+const hiddenStageIndex = stages.length;
+const hiddenStage = {
+  name: '隱藏最終戰',
+  kicker: 'HIDDEN BATTLE · TRUE HON',
+  enemy: '真。HON',
+  hp: 360,
+  attack: 26,
+  art: './assets/ending-revival.webp',
+  sprite: './assets/hon-boss.png',
+  telegraph: '真。HON 正在凝聚黑暗力量，下一回合將發動範圍衝擊。',
+  intro: {
+    kicker: 'THE SECRET ALLIANCE',
+    title: '王座背後的真相',
+    text: '補血藥讓 Ken13 恢復了理智。他坦承自己一直受真。HON 操控，並決定加入勇者陣營。四位夥伴並肩站上球道，準備迎戰真正的幕後黑手。',
+    art: './assets/ending-revival.webp',
+    button: '迎戰真。HON',
+  },
+};
+
+const formerBossBlueprint = {
+  id: 'ken13',
+  name: 'Ken13',
+  role: '前魔王',
+  sprite: './assets/ken13-ally.png',
+  berserkSprite: './assets/ken13-berserk.png',
+  maxHp: 160,
+  maxMp: 100,
+  attack: 24,
+  skill: 'berserk',
+};
+
 const skills = {
   curve: { label: '弧光曲球', cost: 8, description: '強力攻擊 · 34 傷害' },
   heal: { label: '回春符', cost: 9, description: '治療最低生命隊友 · 38' },
@@ -65,6 +96,7 @@ const skills = {
   doubleStrike: { label: '二連擊', cost: 15, description: '連續二次攻擊 · 每次 10-15 傷害' },
   powerSlash: { label: '續力斬', cost: 15, description: '單次爆擊 · 25 傷害' },
   rockPaperScissors: { label: '猜猜拳', cost: 5, description: '猜拳勝利造成 30 傷害' },
+  berserk: { label: '狂化', cost: 50, description: '變身暴走型態 · 所有攻擊傷害 x2' },
 };
 
 const learnableSkillIds = ['doubleStrike', 'powerSlash', 'rockPaperScissors'];
@@ -95,6 +127,9 @@ let selectingItems = false;
 let selectedItemId = '';
 let showingItemShop = false;
 let itemShopUnlocked = false;
+let finalBossHpPotionUses = 0;
+let hiddenRouteUnlocked = false;
+let hiddenRouteCompleted = false;
 
 function showView(view) {
   views.forEach(item => { item.hidden = item !== view; });
@@ -116,6 +151,9 @@ function beginAdventure() {
   selectedItemId = '';
   showingItemShop = false;
   itemShopUnlocked = false;
+  finalBossHpPotionUses = 0;
+  hiddenRouteUnlocked = false;
+  hiddenRouteCompleted = false;
   showStory(stages[stageIndex].intro);
 }
 
@@ -138,8 +176,9 @@ function restBetweenBattles() {
 }
 
 function startBattle() {
-  const stage = stages[stageIndex];
+  const stage = getCurrentStage();
   enemy = { name: stage.enemy, hp: stage.hp, maxHp: stage.hp, mp: stage.hp, maxMp: stage.hp, attack: stage.attack };
+  if (stageIndex === stages.length - 1) finalBossHpPotionUses = 0;
   round = 1;
   actorIndex = 0;
   acted = [];
@@ -157,11 +196,17 @@ function startBattle() {
   $('enemy-backdrop').style.backgroundImage = `url("${stage.art}")`;
   $('boss-sprite').src = stage.sprite;
   $('boss-sprite').alt = stage.enemy;
-  $('enemy-stage').dataset.bossState = stageIndex === 1 ? 'core' : stageIndex === 2 ? 'awakened' : 'ken13';
+  $('enemy-stage').dataset.bossState = stageIndex === 1 ? 'core'
+    : stageIndex === 2 ? 'awakened'
+      : stageIndex === hiddenStageIndex ? 'true-hon' : 'ken13';
   $('enemy-telegraph').textContent = stage.telegraph;
   $('battle-message').textContent = `${stage.enemy} 擋在你們面前。選擇第一位勇者的行動。`;
   showView($('battle-screen'));
   renderBattle();
+}
+
+function getCurrentStage() {
+  return stageIndex === hiddenStageIndex ? hiddenStage : stages[stageIndex];
 }
 
 function nextLivingActor(fromIndex = 0) {
@@ -179,10 +224,10 @@ function renderParty() {
     const active = !locked && !animating && index === actorIndex && hero.hp > 0;
     const dead = hero.hp <= 0;
     const protection = guarded.has(index) ? ' · 防禦中' : '';
-    return `<article class="hero-card${active ? ' is-active' : ''}${dead ? ' is-dead' : ''}" data-hero-id="${hero.id}">
+    return `<article class="hero-card${active ? ' is-active' : ''}${dead ? ' is-dead' : ''}${hero.berserk ? ' is-berserk' : ''}" data-hero-id="${hero.id}">
       <div class="hero-portrait" aria-hidden="true"><img src="${hero.sprite}" alt="" draggable="false">${hero.learning ? '<span class="learning-mark">!</span>' : ''}</div>
       <div class="hero-card-content">
-        <div class="hero-card-head"><span class="hero-name">${hero.name}${protection}</span><span class="hero-role">${dead ? '無法戰鬥' : hero.role}</span></div>
+        <div class="hero-card-head"><span class="hero-name">${hero.name}${protection}</span><span class="hero-role">${dead ? '無法戰鬥' : hero.berserk ? '暴走型態' : hero.role}</span></div>
         <div class="hero-bars"><span class="bar-label">HP</span><span class="bar-value">${hero.hp}/${hero.maxHp}</span><div class="health-track"><span style="width:${hpPercent}%"></span></div><span class="bar-label"></span></div>
         <div class="hero-bars"><span class="bar-label">MP</span><span class="bar-value">${hero.mp}/${hero.maxMp}</span><div class="mp-track"><span style="width:${mpPercent}%"></span></div><span class="bar-label"></span></div>
       </div>
@@ -238,21 +283,38 @@ function renderCommands() {
   }
 
   const skill = skills[hero.skill];
-  const skillHelp = hero.skill === 'heal' ? skill.description : `${skill.description} · MP ${skill.cost}`;
+  const skillHelp = getSkillHelp(hero.skill, hero);
+  const skillDisabled = hero.mp < skill.cost || (hero.skill === 'berserk' && hero.berserk);
   const learnedCommands = hero.learnedSkills.map(skillId => {
     const learnedSkill = skills[skillId];
     if (skillId === 'rockPaperScissors') {
-      return `<button class="command-button" data-action="open-gesture" ${hero.mp < learnedSkill.cost ? 'disabled' : ''}><strong>${learnedSkill.label}</strong><small>${learnedSkill.description} · MP ${learnedSkill.cost}</small></button>`;
+      return `<button class="command-button" data-action="open-gesture" ${hero.mp < learnedSkill.cost ? 'disabled' : ''}><strong>${learnedSkill.label}</strong><small>${getSkillHelp(skillId, hero)}</small></button>`;
     }
-    return `<button class="command-button" data-action="skill" data-skill-id="${skillId}" ${hero.mp < learnedSkill.cost ? 'disabled' : ''}><strong>${learnedSkill.label}</strong><small>${learnedSkill.description} · MP ${learnedSkill.cost}</small></button>`;
+    return `<button class="command-button" data-action="skill" data-skill-id="${skillId}" ${hero.mp < learnedSkill.cost ? 'disabled' : ''}><strong>${learnedSkill.label}</strong><small>${getSkillHelp(skillId, hero)}</small></button>`;
   }).join('');
+  const attackDamage = hero.attack * (hero.berserk ? 2 : 1);
   box.innerHTML = `
-    <button class="command-button" data-action="attack"><strong>普通攻擊</strong><small>造成 ${hero.attack} 傷害 · 不消耗 MP</small></button>
-    <button class="command-button" data-action="skill" data-skill-id="${hero.skill}" ${hero.mp < skill.cost ? 'disabled' : ''}><strong>${skill.label}</strong><small>${skillHelp}</small></button>
+    <button class="command-button" data-action="attack"><strong>普通攻擊</strong><small>造成 ${attackDamage} 傷害 · 不消耗 MP</small></button>
+    <button class="command-button" data-action="skill" data-skill-id="${hero.skill}" ${skillDisabled ? 'disabled' : ''}><strong>${skill.label}</strong><small>${skillHelp}</small></button>
     ${learnedCommands}
     <button class="command-button" data-action="open-items"><strong>使用道具</strong><small>補血藥 ${itemInventory.hpPotion} · 補魔藥 ${itemInventory.mpPotion}</small></button>
     <button class="command-button" data-action="guard"><strong>架勢防禦</strong><small>本回合受到傷害減半</small></button>`;
   bindCommandButtons(box);
+}
+
+function getSkillHelp(skillId, hero) {
+  const skill = skills[skillId];
+  if (!hero.berserk || ['heal', 'berserk'].includes(skillId)) {
+    return skillId === 'heal' ? skill.description : `${skill.description} · MP ${skill.cost}`;
+  }
+  const doubledDescriptions = {
+    curve: '強力攻擊 · 68 傷害',
+    seal: '封印攻擊 · 78 傷害',
+    doubleStrike: '連續二次攻擊 · 每次 20-30 傷害',
+    powerSlash: '單次爆擊 · 50 傷害',
+    rockPaperScissors: '猜拳勝利造成 60 傷害',
+  };
+  return `${doubledDescriptions[skillId] || skill.description} · MP ${skill.cost}`;
 }
 
 function bindCommandButtons(box) {
@@ -320,7 +382,7 @@ function purchaseDemoItem(itemId) {
 }
 
 function renderBattle() {
-  const stage = stages[stageIndex];
+  const stage = getCurrentStage();
   const percentage = Math.max(0, enemy.hp / enemy.maxHp * 100);
   const mpPercentage = Math.max(0, enemy.mp / enemy.maxMp * 100);
   $('enemy-health-bar').style.width = `${percentage}%`;
@@ -362,15 +424,17 @@ function takeAction(action, choice, skillId) {
   const messages = [];
   let healingTarget = null;
   let effectAmount = 0;
+  let enterHiddenStory = false;
   let recoveryType = 'hp';
   let selfDamage = 0;
   let damageNumbers = [];
   let usedSkillId = '';
   let gestureResult = '';
   if (action === 'attack') {
-    enemy.hp = Math.max(0, enemy.hp - hero.attack);
-    effectAmount = hero.attack;
-    messages.push(`${hero.name} 發動普通攻擊，造成 ${hero.attack} 點傷害。`);
+    const damage = hero.attack * (hero.berserk ? 2 : 1);
+    enemy.hp = Math.max(0, enemy.hp - damage);
+    effectAmount = damage;
+    messages.push(`${hero.name} 發動普通攻擊，造成 ${damage} 點傷害。`);
   } else if (action === 'guard') {
     guarded.add(actorIndex);
     messages.push(`${hero.name} 穩住架勢，準備承受攻擊。`);
@@ -388,6 +452,13 @@ function takeAction(action, choice, skillId) {
     healingTarget = target;
     recoveryType = item.resource;
     messages.push(`${hero.name} 使用${item.label}，${target.name} 的 ${item.resource.toUpperCase()} 恢復 ${effectAmount} 點。`);
+    if (stageIndex === stages.length - 1 && skillId === 'hpPotion' && target === enemy) {
+      finalBossHpPotionUses++;
+      if (finalBossHpPotionUses >= 3) {
+        enterHiddenStory = true;
+        messages.push('三個補血藥的力量解開了 Ken13 的心鎖！');
+      }
+    }
     if (!itemShopUnlocked && Object.values(itemInventory).every(count => count === 0)) {
       itemShopUnlocked = true;
       messages.push('初始道具已用完，示範商店已開放（不會實際扣款）。');
@@ -410,14 +481,18 @@ function takeAction(action, choice, skillId) {
       effectAmount = restored;
       messages.push(`${hero.name} 對 ${target.name} 施放回春符，恢復 ${restored} 點生命。`);
     } else if (usedSkillId === 'doubleStrike') {
-      damageNumbers = [10 + Math.floor(Math.random() * 6), 10 + Math.floor(Math.random() * 6)];
+      const multiplier = hero.berserk ? 2 : 1;
+      damageNumbers = [
+        (10 + Math.floor(Math.random() * 6)) * multiplier,
+        (10 + Math.floor(Math.random() * 6)) * multiplier,
+      ];
       effectAmount = damageNumbers.reduce((total, damage) => total + damage, 0);
       enemy.hp = Math.max(0, enemy.hp - effectAmount);
       messages.push(`${hero.name} 使出「二連擊」，連續造成 ${damageNumbers[0]}、${damageNumbers[1]} 點傷害！`);
     } else if (usedSkillId === 'powerSlash') {
-      effectAmount = 25;
+      effectAmount = 25 * (hero.berserk ? 2 : 1);
       enemy.hp = Math.max(0, enemy.hp - effectAmount);
-      messages.push(`${hero.name} 使出「續力斬」，爆擊造成 25 點傷害！`);
+      messages.push(`${hero.name} 使出「續力斬」，爆擊造成 ${effectAmount} 點傷害！`);
     } else if (usedSkillId === 'rockPaperScissors') {
       const opponentChoice = Object.keys(gestureNames)[Math.floor(Math.random() * 3)];
       messages.push(`${hero.name} 出${gestureNames[choice]}，對手出${gestureNames[opponentChoice]}。`);
@@ -430,17 +505,22 @@ function takeAction(action, choice, skillId) {
         || (choice === 'paper' && opponentChoice === 'rock')
       ) {
         gestureResult = `${gestureNames[choice]} VS ${gestureNames[opponentChoice]} · 勝利`;
-        effectAmount = 30;
+        effectAmount = 30 * (hero.berserk ? 2 : 1);
         enemy.hp = Math.max(0, enemy.hp - effectAmount);
-        messages.push('猜拳獲勝，擊中對手造成 30 點傷害！');
+        messages.push(`猜拳獲勝，擊中對手造成 ${effectAmount} 點傷害！`);
       } else {
         gestureResult = `${gestureNames[choice]} VS ${gestureNames[opponentChoice]} · 落敗`;
         selfDamage = 30;
         hero.hp = Math.max(0, hero.hp - selfDamage);
         messages.push(`${hero.name} 猜拳落敗，受到 30 點傷害！`);
       }
+    } else if (usedSkillId === 'berserk') {
+      if (hero.berserk || !hero.berserkSprite) return;
+      hero.berserk = true;
+      hero.sprite = hero.berserkSprite;
+      messages.push(`${hero.name} 發動「狂化」，變身暴走型態！所有攻擊傷害加倍。`);
     } else {
-      const damage = usedSkillId === 'curve' ? 34 : 39;
+      const damage = (usedSkillId === 'curve' ? 34 : 39) * (hero.berserk ? 2 : 1);
       enemy.hp = Math.max(0, enemy.hp - damage);
       effectAmount = damage;
       messages.push(`${hero.name} 使出「${skill.label}」，造成 ${damage} 點傷害！`);
@@ -465,6 +545,23 @@ function takeAction(action, choice, skillId) {
 
   window.setTimeout(() => {
     animating = false;
+    if (enterHiddenStory) {
+      stageIndex = hiddenStageIndex;
+      hiddenRouteUnlocked = true;
+      restBetweenBattles();
+      if (!party.some(member => member.id === formerBossBlueprint.id)) {
+        party.push({
+          ...formerBossBlueprint,
+          hp: formerBossBlueprint.maxHp,
+          mp: formerBossBlueprint.maxMp,
+          learnedSkills: [],
+          learning: false,
+          berserk: false,
+        });
+      }
+      showStory(hiddenStage.intro);
+      return;
+    }
     if (enemy.hp <= 0) {
       finishBattle();
       return;
@@ -500,6 +597,12 @@ function playHeroAction(hero, action, amount, healingTarget, skillId = '', damag
   }
 
   const card = document.querySelector(`[data-hero-id="${hero.id}"]`);
+  if (skillId === 'berserk') {
+    card?.classList.add('is-transforming');
+    if (card) addFloatingNumber(card, '狂化', 'transform-number');
+    window.setTimeout(() => card?.classList.remove('is-transforming'), 900);
+    return;
+  }
   if (selfDamage > 0) {
     card?.classList.add('is-hurt');
     if (card) addFloatingNumber(card, `-${selfDamage}`, 'damage-number');
@@ -660,12 +763,17 @@ function finishBattle(victory = true) {
   } else {
     const finishedStage = stageIndex;
     const nextStory = stageIndex < stages.length - 1;
+    const isHiddenStage = stageIndex === hiddenStageIndex;
+    if (isHiddenStage) hiddenRouteCompleted = hiddenRouteUnlocked;
     message.textContent = nextStory
       ? `${enemy.name} 暫時失去力量。王座深處仍有魔力在呼喚。`
-      : '封印重新亮起，魔王城終於歸於寧靜。';
+      : isHiddenStage
+        ? '真。HON 的力量消散，Ken13 與勇者們一起守住了王座。'
+        : '封印重新亮起，魔王城終於歸於寧靜。';
     const notice = document.createElement('span');
     notice.className = 'auto-transition';
-    notice.textContent = nextStory ? '即將自動前往下一段劇情…' : '即將自動進入第一章結局…';
+    notice.textContent = nextStory ? '即將自動前往下一段劇情…'
+      : isHiddenStage ? '即將進入隱藏結局…' : '即將自動進入第一章結局…';
     result.append(message, notice);
     window.setTimeout(() => {
       if (views[1].hidden || !locked || stageIndex !== finishedStage) return;
@@ -686,8 +794,12 @@ function finishBattle(victory = true) {
 }
 
 function showEnding() {
-  $('ending-art').style.backgroundImage = 'url("./assets/ending-seal.webp")';
-  $('ending-text').textContent = 'Terry 的曲球曾讓魔王倒下，卻沒有擊中藏在球道中央的力量。這一次，三位勇者並肩作戰，jeRy 將最後一道封印打入核心。王座下的法陣再次亮起，Ken13 終於被封印。第一章，完。';
+  $('ending-art').style.backgroundImage = hiddenRouteCompleted
+    ? 'url("./assets/ending-revival.webp")'
+    : 'url("./assets/ending-seal.webp")';
+  $('ending-text').textContent = hiddenRouteCompleted
+    ? '真。HON 終於被擊敗，王座下的陰謀就此揭開。Ken13 放下魔王身分，與 Terry、Migie、jeRy 成為並肩作戰的夥伴。隱藏篇章，完。'
+    : 'Terry 的曲球曾讓魔王倒下，卻沒有擊中藏在球道中央的力量。這一次，三位勇者並肩作戰，jeRy 將最後一道封印打入核心。王座下的法陣再次亮起，Ken13 終於被封印。第一章，完。';
   showView($('ending-screen'));
 }
 
