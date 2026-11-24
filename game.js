@@ -454,9 +454,9 @@ function takeAction(action, choice, skillId) {
     messages.push(`${hero.name} 使用${item.label}，${target.name} 的 ${item.resource.toUpperCase()} 恢復 ${effectAmount} 點。`);
     if (stageIndex === stages.length - 1 && skillId === 'hpPotion' && target === enemy) {
       finalBossHpPotionUses++;
-      if (finalBossHpPotionUses >= 3) {
+      if (finalBossHpPotionUses >= 2) {
         enterHiddenStory = true;
-        messages.push('三個補血藥的力量解開了 Ken13 的心鎖！');
+        messages.push('兩個補血藥的力量解開了 Ken13 的心鎖！');
       }
     }
     if (!itemShopUnlocked && Object.values(itemInventory).every(count => count === 0)) {
